@@ -143,8 +143,8 @@ export async function getActivities(limit: number = 20): Promise<Activity[]> {
 export async function addActivity(icon: string, text: string): Promise<void> {
   const { error } = await supabase
     .from('activities')
-    .insert({ icon, text, timestamp: new Date().toISOString() })
-  
+    .insert({ icon, text, timestamp: Date.now(), time: new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit' }) })
+
   if (error) {
     console.error('Error adding activity:', error)
   }

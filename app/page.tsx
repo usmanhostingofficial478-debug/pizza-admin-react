@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getOrders, getOrderStats, getActivities, subscribeToOrders } from '@/lib/supabase'
+import { getOrders, getOrderStats, getActivities, subscribeToOrders, addActivity } from '@/lib/supabase'
 import { formatCurrency, formatDateTime, getStatusColor, timeAgo } from '@/lib/utils'
 import type { Order, Activity } from '@/types'
 import {
@@ -36,10 +36,20 @@ export default function Dashboard() {
     const subscription = subscribeToOrders((newOrder) => {
       setOrders(prev => {
         const exists = prev.find(o => o.id === newOrder.id)
-        if (exists) {
-          return prev.map(o => o.id === newOrder.id ? newOrder : o)
+        if (!exists) {
+          const customer = typeof newOrder.customer === 'object'
+            ? (newOrder.customer as any)?.name || 'Someone'
+            : newOrder.customer || 'Someone'
+          addActivity('🛒', `New order from <strong>${customer}</strong> - PKR ${newOrder.total}`)
+          setActivities(a => [{
+            id: Date.now().toString(),
+            icon: '🛒',
+            text: `New order from <strong>${customer}</strong> - PKR ${newOrder.total}`,
+            timestamp: Date.now().toString(),
+          }, ...a].slice(0, 10))
+          return [newOrder, ...prev]
         }
-        return [newOrder, ...prev]
+        return prev.map(o => o.id === newOrder.id ? newOrder : o)
       })
     })
 

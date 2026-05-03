@@ -44,12 +44,12 @@ export function getStatusColor(status: string): string {
   return colors[status] || 'bg-gray-500/20 text-gray-500'
 }
 
-export function timeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-  
-  if (seconds < 60) return 'Just now'
+export function timeAgo(dateInput: string | number): string {
+  const ts = typeof dateInput === 'number' ? dateInput : Date.parse(dateInput)
+  if (isNaN(ts)) return ''
+  const seconds = Math.floor((Date.now() - ts) / 1000)
+  if (seconds < 5) return 'Just now'
+  if (seconds < 60) return `${seconds}s ago`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   return `${Math.floor(seconds / 86400)}d ago`
