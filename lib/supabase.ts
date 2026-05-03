@@ -187,15 +187,32 @@ export async function getCoupons(): Promise<Coupon[]> {
   })) as Coupon[]
 }
 
-export async function addCoupon(data: Omit<Coupon,'id'|'created_at'|'usage_count'>): Promise<Coupon | null> {
-  const { data: row, error } = await supabase.from('coupons')
-    .insert([{ ...data, used: 0, usage_count: 0 }]).select().single()
-  if (error) { console.error('Error adding coupon:', error); return null }
-  return row as Coupon
+function mapCouponToDb(data: Record<string, any>) {
+  const mapped: Record<string, any> = {}
+  if (data.code       !== undefined) mapped.code      = data.code
+  if (data.type       !== undefined) mapped.type      = data.type
+  if (data.value      !== undefined) mapped.value     = data.value
+  if (data.max_uses   !== undefined) mapped.max_uses  = data.max_uses
+  if (data.active     !== undefined) mapped.active    = data.active
+  // map expires_at -> expiry (original schema column)
+  if (data.expires_at !== undefined) mapped.expiry    = data.expires_at || null
+  if (data.expiry     !== undefined) mapped.expiry    = data.expiry     || null
+  // ignore usage_count / discount (not in original schema)
+  return mapped
 }
 
-export async function updateCoupon(id: string, updates: Partial<Coupon>): Promise<boolean> {
-  const { error } = await supabase.from('coupons').update(updates).eq('id', id)
+export async function addCoupon(data: Record<string, any>): Promise<any | null> {
+  const payload = { ...mapCouponToDb(data), used: 0 }
+  const { data: row, error } = await supabase.from('coupons').insert([payload]).select().single()
+  if (error) { console.error('Error adding coupon:', error); return null }
+  return row
+}
+
+export async function updateCoupon(id: string, updates: Record<string, any>): Promise<boolean> {
+  const payload = mapCouponToDb(updates)
+  // pass through non-mapped fields (like active)
+  Object.keys(updates).forEach(k => { if (!(k in payload) && k !== 'expires_at' && k !== 'usage_count' && k !== 'discount') payload[k] = updates[k] })
+  const { error } = await supabase.from('coupons').update(payload).eq('id', id)
   if (error) { console.error('Error updating coupon:', error); return false }
   return true
 }
