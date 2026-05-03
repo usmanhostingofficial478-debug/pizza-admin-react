@@ -23,6 +23,7 @@ function fmtDateTime(ts?: string) {
 
 export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => void }) {
   const barcodeRef = useRef<SVGSVGElement>(null)
+  const paperRef   = useRef<HTMLDivElement>(null)
 
   const trackingId =
     (order as any).tracking_id || (order as any).order_id || order.id || ''
@@ -58,7 +59,49 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
   const custName = (order as any).customer?.name || (order as any).customer || ''
   const custPhone= (order as any).customer?.phone || (order as any).phone || ''
 
-  const handlePrint = () => window.print()
+  const handlePrint = () => {
+    if (!paperRef.current) return
+    const html = paperRef.current.outerHTML
+    const w = window.open('', '_blank', 'width=420,height=760')
+    if (!w) {
+      alert('Please allow popups to print the receipt.')
+      return
+    }
+    w.document.write(`<!doctype html>
+<html><head>
+<meta charset="utf-8" />
+<title>Receipt ${trackingId}</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { font-family: 'Courier New', ui-monospace, Menlo, monospace; color: #000; }
+  .receipt-paper { background: #fff; color: #000; padding: 14px 12px; font-size: 13px; line-height: 1.45; width: 80mm; box-sizing: border-box; margin: 0 auto; }
+  .r-center { text-align: center; }
+  .r-logo { font-size: 28px; margin-bottom: 4px; }
+  .r-store { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .r-addr { font-size: 12px; }
+  .r-sep  { border-top: 1px dashed #000; margin: 10px 0; }
+  .r-row  { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .r-meta { font-size: 12px; margin-top: 2px; }
+  .r-item { display: flex; justify-content: space-between; gap: 10px; margin: 3px 0; font-size: 13px; }
+  .r-item-name { flex: 1; }
+  .r-item-price { white-space: nowrap; font-weight: 600; }
+  .r-total { font-weight: 800; font-size: 15px; margin-top: 4px; }
+  .r-barcode { margin: 6px 0 4px; }
+  .r-barcode svg { width: 100%; height: 70px; display: block; margin: 0 auto; }
+  .r-barcode-label { font-size: 11px; margin-top: 2px; letter-spacing: 1px; }
+  .r-thanks { margin-top: 10px; font-size: 12px; }
+  @page { margin: 0; size: 80mm auto; }
+  @media print {
+    html, body { width: 80mm; }
+    .receipt-paper { width: 80mm; padding: 6mm; }
+  }
+</style>
+</head><body>${html}<script>
+  window.onload = function(){ setTimeout(function(){ window.focus(); window.print(); }, 300); };
+  window.onafterprint = function(){ window.close(); };
+</script></body></html>`)
+    w.document.close()
+  }
 
   return (
     <>
@@ -83,7 +126,7 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
           </div>
 
           {/* Printable receipt */}
-          <div id="receipt-paper" className="receipt-paper">
+          <div ref={paperRef} id="receipt-paper" className="receipt-paper">
             <div className="r-center">
               <div className="r-logo">🍕</div>
               <div className="r-store">{STORE_NAME}</div>
@@ -162,21 +205,6 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
         .r-barcode svg { width: 100%; height: 70px; display: block; margin: 0 auto; }
         .r-barcode-label { font-size: 11px; margin-top: 2px; letter-spacing: 1px; }
         .r-thanks    { margin-top: 10px; font-size: 12px; }
-
-        @media print {
-          body * { visibility: hidden !important; }
-          #receipt-paper, #receipt-paper * { visibility: visible !important; }
-          #receipt-paper {
-            position: absolute !important;
-            left: 0; top: 0;
-            width: 80mm;
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            padding: 6mm !important;
-          }
-          .no-print { display: none !important; }
-          @page { margin: 0; size: 80mm auto; }
-        }
       `}</style>
     </>
   )
