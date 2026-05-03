@@ -2,7 +2,7 @@ const AUTH_KEY    = 'pz_admin_auth'
 const TIMEOUT_MS  = 15 * 60 * 1000 // 15 minutes
 
 export const ADMIN_PASSWORD =
-  process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin1234'
+  process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '0478'
 
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false
