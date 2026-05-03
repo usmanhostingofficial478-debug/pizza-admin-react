@@ -305,7 +305,7 @@ export default function OrdersPage() {
                   <StatusDropdown value={order.status} onChange={s => changeStatus(order.id, s)} />
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 justify-end">
+                  <div className="flex items-center gap-4 justify-center">
                     <button onClick={e => { e.stopPropagation(); setReceiptOrder(order) }}
                       className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
                       title="Print receipt">
