@@ -247,7 +247,7 @@ export default function OrdersPage() {
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
         {/* Table header */}
         <div className="grid gap-2 px-4 py-2.5"
-          style={{ gridTemplateColumns: '1.6fr 1.2fr 1fr 0.7fr 0.8fr 0.9fr 1fr 0.4fr', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          style={{ gridTemplateColumns: '1.6fr 1.2fr 1fr 0.7fr 0.8fr 0.9fr 1fr 0.7fr', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           {['Order ID','Customer','Phone','Items','Total','Time','Status',''].map(h => (
             <span key={h} className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{h}</span>
           ))}
@@ -264,7 +264,7 @@ export default function OrdersPage() {
                 <div key={order.id}
                   className="grid gap-2 px-4 py-3 items-center transition-all cursor-pointer"
                   style={{
-                    gridTemplateColumns: '1.6fr 1.2fr 1fr 0.7fr 0.8fr 0.9fr 1fr 0.4fr',
+                    gridTemplateColumns: '1.6fr 1.2fr 1fr 0.7fr 0.8fr 0.9fr 1fr 0.7fr',
                     borderBottom: i < filtered.length-1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                     borderLeft: `3px solid ${meta.color}`,
                     background: 'rgba(255,255,255,0.01)',
@@ -304,19 +304,19 @@ export default function OrdersPage() {
                   {/* Status */}
                   <StatusDropdown value={order.status} onChange={s => changeStatus(order.id, s)} />
 
-                  {/* Print Receipt */}
-                  <button onClick={e => { e.stopPropagation(); setReceiptOrder(order) }}
-                    className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
-                    title="Print receipt">
-                    <Printer className="w-4 h-4" />
-                  </button>
-
-                  {/* View */}
-                  <button onClick={e => { e.stopPropagation(); setSelected(order) }}
-                    className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
-                    title="View details">
-                    <Eye className="w-4 h-4" />
-                  </button>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 justify-end">
+                    <button onClick={e => { e.stopPropagation(); setReceiptOrder(order) }}
+                      className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
+                      title="Print receipt">
+                      <Printer className="w-4 h-4" />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); setSelected(order) }}
+                      className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
+                      title="View details">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )
             })}
