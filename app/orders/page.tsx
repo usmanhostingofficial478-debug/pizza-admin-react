@@ -43,16 +43,16 @@ function StatusDropdown({ value, onChange }: { value: string; onChange: (s: stri
       </button>
       {open && (
         <div ref={menuRef}
-          className="fixed z-[9999] rounded-xl py-1 shadow-2xl"
-          style={{ top: pos.top, left: pos.left, minWidth: 140, background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)' }}>
-          {STATUSES.map(s => {
+          className="fixed z-[9999] rounded-xl py-1 shadow-2xl status-dd-menu"
+          style={{ top: pos.top, left: pos.left, minWidth: 160, background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)', transformOrigin: 'top center' }}>
+          {STATUSES.map((s, i) => {
             const m = sm(s)
             const isActive = s === value
             return (
               <button key={s}
                 onClick={(e) => { e.stopPropagation(); onChange(s); setOpen(false) }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-left hover:bg-white/5 transition"
-                style={isActive ? { color: m.color } : { color: '#9ca3af' }}>
+                className="status-dd-item w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-left hover:bg-white/5 transition"
+                style={{ color: isActive ? m.color : '#9ca3af', animationDelay: `${i * 35}ms` }}>
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />
                 {s}
                 {isActive && <span className="ml-auto text-[10px]">✓</span>}
@@ -61,6 +61,19 @@ function StatusDropdown({ value, onChange }: { value: string; onChange: (s: stri
           })}
         </div>
       )}
+      <style jsx global>{`
+        @keyframes statusDdIn {
+          0%   { opacity: 0; transform: translateY(-8px) scale(0.96); }
+          60%  { opacity: 1; transform: translateY(1px)  scale(1.005); }
+          100% { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        @keyframes statusDdItemIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .status-dd-menu  { animation: statusDdIn 0.22s cubic-bezier(0.16,1,0.3,1) both; }
+        .status-dd-item  { animation: statusDdItemIn 0.25s ease both; opacity: 0; }
+      `}</style>
     </>
   )
 }
