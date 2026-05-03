@@ -31,6 +31,37 @@ const SECTIONS = [
   },
 ]
 
+function NavItem({ href, isActive, count, children }: {
+  href: string; isActive: boolean; count: number; children: React.ReactNode
+}) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <Link href={href}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: 12, padding: '10px 12px',
+        borderLeft: isActive ? '3px solid #f97316' : '3px solid transparent',
+        background: isActive
+          ? 'linear-gradient(135deg,rgba(234,88,12,0.22),rgba(249,115,22,0.12))'
+          : hovered ? 'rgba(255,255,255,0.07)' : 'transparent',
+        transition: 'background 0.15s, border-color 0.15s',
+        cursor: 'pointer', textDecoration: 'none',
+      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {children}
+      </div>
+      {count > 0 && (
+        <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 999,
+          background: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
+          {count}
+        </span>
+      )}
+    </Link>
+  )
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
@@ -121,25 +152,12 @@ export function Sidebar() {
                   (item.href !== '/' && pathname?.startsWith(item.href))
                 const count   = getBadge((item as any).badge)
                 return (
-                  <Link key={item.href} href={item.href}
-                    className="flex items-center justify-between rounded-xl px-3 py-2.5 group transition-all"
-                    style={isActive
-                      ? { background: 'linear-gradient(135deg,rgba(234,88,12,0.2),rgba(249,115,22,0.1))', borderLeft: '3px solid #f97316' }
-                      : { borderLeft: '3px solid transparent' }}>
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-orange-400' : 'text-gray-500 group-hover:text-gray-300'}`}
-                        style={{ width: 18, height: 18 }} />
-                      <span className={`text-sm font-semibold transition-colors ${isActive ? 'text-orange-300' : 'text-gray-400 group-hover:text-white'}`}>
-                        {item.label}
-                      </span>
-                    </div>
-                    {count > 0 && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
-                        {count}
-                      </span>
-                    )}
-                  </Link>
+                  <NavItem key={item.href} href={item.href} isActive={isActive} count={count}>
+                    <Icon style={{ width: 18, height: 18, color: isActive ? '#fb923c' : '#9ca3af', flexShrink: 0 }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: isActive ? '#fdba74' : '#d1d5db' }}>
+                      {item.label}
+                    </span>
+                  </NavItem>
                 )
               })}
             </div>
