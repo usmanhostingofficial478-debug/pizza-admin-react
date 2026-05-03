@@ -97,13 +97,47 @@ export async function getCustomers(): Promise<Customer[]> {
     .from('customers')
     .select('*')
     .order('created_at', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching customers:', error)
-    return []
-  }
-  
-  return data || []
+  if (error) { console.error('Error fetching customers:', error); return [] }
+  return (data || []).map(c => ({
+    ...c,
+    orders_count: c.total_orders ?? c.orders ?? 0,
+    total_spent:  c.total_spent  ?? c.spent  ?? 0,
+  }))
+}
+
+export async function addCustomer(data: {
+  name: string; phone: string; address?: string; email?: string; notes?: string; badge?: string
+}): Promise<Customer | null> {
+  const { data: row, error } = await supabase
+    .from('customers')
+    .insert([{ ...data, badge: data.badge || 'Regular', total_orders: 0, total_spent: 0 }])
+    .select().single()
+  if (error) { console.error('Error adding customer:', error); return null }
+  return row as Customer
+}
+
+export async function updateCustomer(id: string, updates: Record<string, any>): Promise<boolean> {
+  const { error } = await supabase.from('customers').update(updates).eq('id', id)
+  if (error) { console.error('Error updating customer:', error); return false }
+  return true
+}
+
+export async function deleteCustomer(id: string): Promise<boolean> {
+  const { error } = await supabase.from('customers').delete().eq('id', id)
+  if (error) { console.error('Error deleting customer:', error); return false }
+  return true
+}
+
+export async function getCustomerOrders(phone: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error || !data) return []
+  return data.filter(o => {
+    const cust = typeof o.customer === 'object' ? o.customer : {}
+    return (cust.phone || o.phone || '').replace(/\s/g,'') === phone.replace(/\s/g,'')
+  })
 }
 
 // Menu
