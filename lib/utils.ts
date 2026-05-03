@@ -45,7 +45,16 @@ export function getStatusColor(status: string): string {
 }
 
 export function timeAgo(dateInput: string | number): string {
-  const ts = typeof dateInput === 'number' ? dateInput : Date.parse(dateInput)
+  let ts: number
+  if (typeof dateInput === 'number') {
+    ts = dateInput
+  } else {
+    // Force UTC parsing if no timezone info (Supabase returns timestamps without Z)
+    const str = dateInput && !dateInput.endsWith('Z') && !dateInput.includes('+') && !dateInput.includes('-', 10)
+      ? dateInput + 'Z'
+      : dateInput
+    ts = Date.parse(str)
+  }
   if (isNaN(ts)) return ''
   const seconds = Math.floor((Date.now() - ts) / 1000)
   if (seconds < 5) return 'Just now'
