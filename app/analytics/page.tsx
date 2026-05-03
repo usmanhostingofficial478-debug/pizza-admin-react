@@ -32,7 +32,19 @@ function SectionTitle({ children }: any) {
 export default function AnalyticsPage() {
   const [orders, setOrders]   = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [range, setRange]     = useState<14|30>(14)
+  const [range, setRange]     = useState<number>(14)
+  const [customOpen, setCustomOpen] = useState(false)
+  const [customDraft, setCustomDraft] = useState<string>('90')
+
+  const PRESETS = [7, 14, 30] as const
+  const isPreset = (PRESETS as readonly number[]).includes(range)
+
+  function applyCustom() {
+    const n = Math.max(1, Math.min(3650, parseInt(customDraft || '0', 10) || 0))
+    if (!n) return
+    setRange(n)
+    setCustomOpen(false)
+  }
 
   useEffect(() => { load() }, [])
 
@@ -174,9 +186,9 @@ export default function AnalyticsPage() {
           <h1 className="text-3xl font-black text-white">Analytics</h1>
           <p className="text-gray-400 mt-1">Real-time business insights</p>
         </div>
-        <div className="flex gap-2">
-          {([14, 30] as const).map(d => (
-            <button key={d} onClick={() => setRange(d)}
+        <div className="flex flex-wrap gap-2 items-center relative">
+          {PRESETS.map(d => (
+            <button key={d} onClick={() => { setRange(d); setCustomOpen(false) }}
               className="px-4 py-2 rounded-xl text-sm font-bold transition"
               style={range === d
                 ? { background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }
@@ -184,7 +196,63 @@ export default function AnalyticsPage() {
               {d} Days
             </button>
           ))}
+          <button
+            onClick={() => setCustomOpen(o => !o)}
+            className="px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5"
+            style={!isPreset
+              ? { background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }
+              : { background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}>
+            {!isPreset ? `${range} Days` : 'Custom'}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+              style={{ transform: customOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {customOpen && (
+            <div className="absolute right-0 top-full mt-2 z-50 p-4 rounded-2xl shadow-2xl"
+              style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)', minWidth: 260,
+                animation: 'rangePop 0.2s cubic-bezier(0.16,1,0.3,1) both', transformOrigin: 'top right' }}>
+              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">Custom Range</p>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={customDraft}
+                  onChange={e => setCustomDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') applyCustom() }}
+                  className="flex-1 px-3 py-2 rounded-xl bg-black/30 text-white text-sm font-bold outline-none"
+                  style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+                  placeholder="e.g. 90"
+                  autoFocus
+                />
+                <span className="text-gray-500 text-xs">days</span>
+                <button onClick={applyCustom}
+                  className="px-3 py-2 rounded-xl text-xs font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)' }}>
+                  Apply
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[60, 90, 180, 365, 730].map(n => (
+                  <button key={n} onClick={() => { setRange(n); setCustomDraft(String(n)); setCustomOpen(false) }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition hover:opacity-80"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}>
+                    {n >= 365 ? `${n/365}yr${n/365 > 1 ? 's' : ''}` : `${n}d`}
+                  </button>
+                ))}
+              </div>
+              <p className="text-gray-600 text-[10px] mt-3">1 – 3650 days allowed</p>
+            </div>
+          )}
         </div>
+        <style>{`
+          @keyframes rangePop {
+            from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        `}</style>
       </div>
 
       {/* KPI Row */}
