@@ -46,7 +46,7 @@ export default function CustomersPage() {
             {customers.map((customer) => (
               <tr key={customer.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 text-sm">{customer.name}</td>
-                <td className="px-4 py-3 text-sm">{customer.email}</td>
+                <td className="px-4 py-3 text-sm">{customer.email || '-'}</td>
                 <td className="px-4 py-3 text-sm">{customer.phone}</td>
               </tr>
             ))}
