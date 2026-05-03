@@ -6,6 +6,14 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUz
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+function normalizeStatus(status: string): string {
+  if (!status) return 'Pending'
+  const s = status.trim()
+  const validStatuses = ['Pending', 'Processing', 'Confirmed', 'On the Way', 'Delivered', 'Cancelled']
+  const match = validStatuses.find(v => v.toLowerCase() === s.toLowerCase())
+  return match || (s.charAt(0).toUpperCase() + s.slice(1))
+}
+
 // Helper to transform raw Supabase order into typed Order
 function processOrder(order: any): Order {
   const customerObj = typeof order.customer === 'object' && order.customer !== null
@@ -71,12 +79,14 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
 }
 
 export function subscribeToOrders(callback: (order: Order) => void) {
+  const channelName = `orders-realtime-${Math.random().toString(36).slice(2)}`
   return supabase
-    .channel('orders-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-      if (payload.new && Object.keys(payload.new).length > 0) {
-        callback(processOrder(payload.new))
-      }
+    .channel(channelName)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+      if (payload.new) callback(processOrder(payload.new))
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+      if (payload.new) callback(processOrder(payload.new))
     })
     .subscribe()
 }
@@ -153,14 +163,6 @@ export async function addActivity(icon: string, text: string): Promise<void> {
   if (error) {
     console.error('Error adding activity:', error)
   }
-}
-
-// Helper function
-function normalizeStatus(status: string): string {
-  if (!status) return 'Pending'
-  const normalized = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
-  const validStatuses = ['Pending', 'Processing', 'Confirmed', 'On the Way', 'Delivered', 'Cancelled']
-  return validStatuses.includes(normalized) ? normalized : 'Pending'
 }
 
 // Analytics
