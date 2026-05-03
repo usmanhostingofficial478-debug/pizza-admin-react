@@ -24,6 +24,7 @@ export interface Order {
 export interface Customer {
   id: string;
   name: string;
+  email?: string;
   phone: string;
   address?: string;
   orders_count: number;
