@@ -33,13 +33,16 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 function BadgeDropdown({ current, onChange }: { current: string; onChange: (b: string) => void }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos]   = useState({ top: 0, left: 0 })
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const btnRef  = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const bs = badgeStyle(current)
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
       const t = e.target as Node
-      if (btnRef.current && !btnRef.current.contains(t)) setOpen(false)
+      const inBtn  = btnRef.current?.contains(t)
+      const inMenu = menuRef.current?.contains(t)
+      if (!inBtn && !inMenu) setOpen(false)
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
@@ -61,7 +64,7 @@ function BadgeDropdown({ current, onChange }: { current: string; onChange: (b: s
         {current} ▾
       </button>
       {open && typeof window !== 'undefined' && (
-        <div className="fixed z-[9999] rounded-xl border border-white/10 shadow-2xl py-1 min-w-[130px]"
+        <div ref={menuRef} className="fixed z-[9999] rounded-xl border border-white/10 shadow-2xl py-1 min-w-[130px]"
           style={{ background: '#1a1a2e', top: pos.top, left: pos.left }}>
           {BADGES.map(b => (
             <button key={b.label} onClick={() => { onChange(b.label); setOpen(false) }}
