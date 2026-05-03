@@ -36,24 +36,34 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 export async function updateOrderStatus(orderId: string, status: string): Promise<boolean> {
-  // Try to update by tracking_id first, then by id
-  const { error: error1 } = await supabase
+  const updated_at = new Date().toISOString()
+
+  const { data: d1, error: e1 } = await supabase
     .from('orders')
-    .update({ status })
+    .update({ status, updated_at })
     .eq('tracking_id', orderId)
-  
-  if (!error1) return true
-  
-  const { error: error2 } = await supabase
+    .select('id')
+
+  if (!e1 && d1 && d1.length > 0) return true
+
+  const { data: d2, error: e2 } = await supabase
     .from('orders')
-    .update({ status })
+    .update({ status, updated_at })
+    .eq('order_id', orderId)
+    .select('id')
+
+  if (!e2 && d2 && d2.length > 0) return true
+
+  const { error: e3 } = await supabase
+    .from('orders')
+    .update({ status, updated_at })
     .eq('id', orderId)
-  
-  if (error2) {
-    console.error('Error updating order status:', error2)
+
+  if (e3) {
+    console.error('Error updating order status:', e3)
     return false
   }
-  
+
   return true
 }
 

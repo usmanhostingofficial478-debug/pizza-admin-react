@@ -18,6 +18,7 @@ export function formatDate(dateString: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: 'Asia/Karachi',
   })
 }
 
@@ -27,6 +28,7 @@ export function formatDateTime(dateString: string): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Karachi',
   })
 }
 
