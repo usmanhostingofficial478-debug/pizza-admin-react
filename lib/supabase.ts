@@ -178,17 +178,32 @@ export async function deleteMenuItem(id: string): Promise<boolean> {
 
 // Coupons
 export async function getCoupons(): Promise<Coupon[]> {
-  const { data, error } = await supabase
-    .from('coupons')
-    .select('*')
-    .order('code')
-  
-  if (error) {
-    console.error('Error fetching coupons:', error)
-    return []
-  }
-  
-  return data || []
+  const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false })
+  if (error) { console.error('Error fetching coupons:', error); return [] }
+  return (data || []).map(c => ({
+    ...c,
+    usage_count: c.usage_count ?? c.used ?? 0,
+    expires_at:  c.expires_at  ?? c.expiry ?? '',
+  })) as Coupon[]
+}
+
+export async function addCoupon(data: Omit<Coupon,'id'|'created_at'|'usage_count'>): Promise<Coupon | null> {
+  const { data: row, error } = await supabase.from('coupons')
+    .insert([{ ...data, used: 0, usage_count: 0 }]).select().single()
+  if (error) { console.error('Error adding coupon:', error); return null }
+  return row as Coupon
+}
+
+export async function updateCoupon(id: string, updates: Partial<Coupon>): Promise<boolean> {
+  const { error } = await supabase.from('coupons').update(updates).eq('id', id)
+  if (error) { console.error('Error updating coupon:', error); return false }
+  return true
+}
+
+export async function deleteCoupon(id: string): Promise<boolean> {
+  const { error } = await supabase.from('coupons').delete().eq('id', id)
+  if (error) { console.error('Error deleting coupon:', error); return false }
+  return true
 }
 
 // Activities
