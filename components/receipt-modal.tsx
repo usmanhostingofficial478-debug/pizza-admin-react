@@ -27,20 +27,28 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
 
   const trackingId =
     (order as any).tracking_id || (order as any).order_id || order.id || ''
-  const trackUrl = `${TRACK_ORIGIN.replace(/\/$/, '')}/track-order?orderId=${trackingId}`
 
-  // Generate a real scannable Code128 barcode
+  // Build compact text payload for the barcode (no URL)
+  const barcodeText = (() => {
+    const name    = (order as any).customer?.name    || (order as any).customer || ''
+    const phone   = (order as any).customer?.phone   || (order as any).phone    || ''
+    const address = (order as any).customer?.address || (order as any).address  || ''
+    const total   = Number(order.total) || 0
+    return `ID:${trackingId}|${name}|${phone}|${address}|Rs.${total}`
+  })()
+
+  // Generate a real scannable Code128 barcode (smaller)
   useEffect(() => {
     if (!barcodeRef.current) return
     let cancelled = false
     import('jsbarcode').then(({ default: JsBarcode }) => {
       if (cancelled || !barcodeRef.current) return
       try {
-        JsBarcode(barcodeRef.current, trackUrl, {
+        JsBarcode(barcodeRef.current, barcodeText, {
           format: 'CODE128',
           displayValue: false,
-          height: 70,
-          width: 1.6,
+          height: 38,
+          width: 1.1,
           margin: 0,
           background: '#ffffff',
           lineColor: '#000000',
@@ -48,7 +56,7 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
       } catch (e) { console.error('barcode error:', e) }
     })
     return () => { cancelled = true }
-  }, [trackUrl])
+  }, [barcodeText])
 
   const items    = Array.isArray(order.items) ? (order.items as any[]) : []
   const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0)
@@ -87,8 +95,8 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
   .r-item-price { white-space: nowrap; font-weight: 600; }
   .r-total { font-weight: 800; font-size: 15px; margin-top: 4px; }
   .r-barcode { margin: 6px 0 4px; }
-  .r-barcode svg { width: 100%; height: 70px; display: block; margin: 0 auto; }
-  .r-barcode-label { font-size: 11px; margin-top: 2px; letter-spacing: 1px; }
+  .r-barcode svg { max-width: 200px; width: 100%; height: 40px; display: block; margin: 0 auto; }
+  .r-barcode-label { font-size: 10px; margin-top: 2px; letter-spacing: 1px; }
   .r-thanks { margin-top: 10px; font-size: 12px; }
   @page { margin: 0; size: 80mm auto; }
   @media print {
@@ -168,7 +176,7 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
 
             <div className="r-center r-barcode">
               <svg ref={barcodeRef} />
-              <div className="r-barcode-label">Scan to view order</div>
+              <div className="r-barcode-label">Scan for order details</div>
             </div>
 
             <div className="r-center r-thanks">
@@ -202,8 +210,8 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
         .r-item-price{ white-space: nowrap; font-weight: 600; }
         .r-total     { font-weight: 800; font-size: 15px; margin-top: 4px; }
         .r-barcode   { margin: 6px 0 4px; }
-        .r-barcode svg { width: 100%; height: 70px; display: block; margin: 0 auto; }
-        .r-barcode-label { font-size: 11px; margin-top: 2px; letter-spacing: 1px; }
+        .r-barcode svg { max-width: 200px; width: 100%; height: 40px; display: block; margin: 0 auto; }
+        .r-barcode-label { font-size: 10px; margin-top: 2px; letter-spacing: 1px; }
         .r-thanks    { margin-top: 10px; font-size: 12px; }
       `}</style>
     </>
