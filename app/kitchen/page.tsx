@@ -83,9 +83,12 @@ export default function KitchenPage() {
     return o.status === 'Delivered' && new Date(o.created_at) >= s
   })
 
-  const avgWait = active.length
-    ? Math.round(active.reduce((s,o) => s + elapsed(o.created_at), 0) / active.length / 60)
+  const avgWaitSecs = active.length
+    ? Math.round(active.reduce((s,o) => s + elapsed(o.created_at), 0) / active.length)
     : 0
+  const avgWait = avgWaitSecs >= 3600
+    ? `${Math.floor(avgWaitSecs/3600)}h ${Math.floor((avgWaitSecs%3600)/60)}m`
+    : `${Math.floor(avgWaitSecs/60)}m`
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center" style={{ background: '#0a0a14' }}>
