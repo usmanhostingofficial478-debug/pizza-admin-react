@@ -124,6 +124,24 @@ export async function getMenuItems(): Promise<MenuItem[]> {
   })) as MenuItem[]
 }
 
+export async function addMenuItem(item: Omit<MenuItem, 'id'>): Promise<MenuItem | null> {
+  const { data, error } = await supabase.from('menu').insert([item]).select().single()
+  if (error) { console.error('Error adding menu item:', error); return null }
+  return data as MenuItem
+}
+
+export async function updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<boolean> {
+  const { error } = await supabase.from('menu').update(updates).eq('id', id)
+  if (error) { console.error('Error updating menu item:', error); return false }
+  return true
+}
+
+export async function deleteMenuItem(id: string): Promise<boolean> {
+  const { error } = await supabase.from('menu').delete().eq('id', id)
+  if (error) { console.error('Error deleting menu item:', error); return false }
+  return true
+}
+
 // Coupons
 export async function getCoupons(): Promise<Coupon[]> {
   const { data, error } = await supabase
