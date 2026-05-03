@@ -6,6 +6,23 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUz
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Helper to transform raw Supabase order into typed Order
+function processOrder(order: any): Order {
+  const customerObj = typeof order.customer === 'object' && order.customer !== null
+    ? order.customer
+    : {}
+  return {
+    ...order,
+    id: order.tracking_id || order.order_id || String(order.id),
+    tracking_id: order.tracking_id || order.order_id || String(order.id),
+    customer: customerObj.name || order.customer || 'Unknown',
+    phone: customerObj.phone || order.phone || '',
+    address: customerObj.address || order.address || '',
+    status: normalizeStatus(order.status),
+    items: Array.isArray(order.items) ? order.items : [],
+  } as Order
+}
+
 // Orders
 export async function getOrders(): Promise<Order[]> {
   const { data, error } = await supabase
@@ -18,21 +35,7 @@ export async function getOrders(): Promise<Order[]> {
     return []
   }
   
-  return (data || []).map(order => {
-    const customerObj = typeof order.customer === 'object' && order.customer !== null
-      ? order.customer
-      : {}
-    return {
-      ...order,
-      id: order.tracking_id || order.order_id || String(order.id),
-      tracking_id: order.tracking_id || order.order_id || String(order.id),
-      customer: customerObj.name || order.customer || 'Unknown',
-      phone: customerObj.phone || order.phone || '',
-      address: customerObj.address || order.address || '',
-      status: normalizeStatus(order.status),
-      items: Array.isArray(order.items) ? order.items : [],
-    }
-  }) as Order[]
+  return (data || []).map(processOrder)
 }
 
 export async function updateOrderStatus(orderId: string, status: string): Promise<boolean> {
@@ -69,9 +72,11 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
 
 export function subscribeToOrders(callback: (order: Order) => void) {
   return supabase
-    .channel('orders')
+    .channel('orders-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
-      callback(payload.new as Order)
+      if (payload.new && Object.keys(payload.new).length > 0) {
+        callback(processOrder(payload.new))
+      }
     })
     .subscribe()
 }

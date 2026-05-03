@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getOrders, getOrderStats, getActivities, subscribeToOrders, addActivity } from '@/lib/supabase'
+import { getOrders, getActivities, subscribeToOrders, addActivity } from '@/lib/supabase'
 import { formatCurrency, formatDateTime, getStatusColor, timeAgo } from '@/lib/utils'
 import type { Order, Activity } from '@/types'
 import {
@@ -18,16 +18,17 @@ import {
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([])
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    totalOrders: 0,
-    pendingOrders: 0,
-    deliveredOrders: 0,
-    cancelledOrders: 0,
-    averageOrderValue: 0,
-  })
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
+
+  const stats = {
+    totalRevenue: orders.filter(o => o.status.toLowerCase() !== 'cancelled').reduce((s, o) => s + (Number(o.total) || 0), 0),
+    totalOrders: orders.length,
+    pendingOrders: orders.filter(o => o.status.toLowerCase() === 'pending').length,
+    deliveredOrders: orders.filter(o => o.status.toLowerCase() === 'delivered').length,
+    cancelledOrders: orders.filter(o => o.status.toLowerCase() === 'cancelled').length,
+    averageOrderValue: 0,
+  }
 
   useEffect(() => {
     loadData()
@@ -60,13 +61,11 @@ export default function Dashboard() {
 
   async function loadData() {
     setLoading(true)
-    const [ordersData, statsData, activitiesData] = await Promise.all([
+    const [ordersData, activitiesData] = await Promise.all([
       getOrders(),
-      getOrderStats(),
       getActivities(10),
     ])
     setOrders(ordersData)
-    setStats(statsData)
     setActivities(activitiesData)
     setLoading(false)
   }
