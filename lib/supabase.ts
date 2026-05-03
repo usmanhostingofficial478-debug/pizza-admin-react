@@ -91,6 +91,17 @@ export function subscribeToOrders(callback: (order: Order) => void) {
     .subscribe()
 }
 
+/** INSERT-only subscription — use this for new-order notifications */
+export function subscribeToNewOrders(callback: (order: Order) => void) {
+  const channelName = `new-orders-${Math.random().toString(36).slice(2)}`
+  return supabase
+    .channel(channelName)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+      if (payload.new) callback(processOrder(payload.new))
+    })
+    .subscribe()
+}
+
 // Customers
 export async function getCustomers(): Promise<Customer[]> {
   const { data, error } = await supabase

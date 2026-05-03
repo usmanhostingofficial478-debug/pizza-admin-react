@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { isAuthenticated, updateActivity, logout } from '@/lib/auth'
-import { subscribeToOrders } from '@/lib/supabase'
+import { subscribeToNewOrders, getOrders } from '@/lib/supabase'
 import { X, ShoppingBag } from 'lucide-react'
 
 // ── Notification sound (Web Audio API — no file needed) ────────
@@ -66,8 +66,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       Notification.requestPermission()
     }
 
-    const sub = subscribeToOrders((order) => {
-      // Only fire for brand-new orders (INSERT), not status updates
+    // Pre-seed seen IDs with ALL current orders so only truly new inserts notify
+    let cancelled = false
+    getOrders().then(list => {
+      if (cancelled) return
+      list.forEach(o => seenIds.current.add(o.id))
+    }).catch(() => {})
+
+    const sub = subscribeToNewOrders((order) => {
+      // INSERT-only channel, but still dedupe in case subscription reconnects
       if (seenIds.current.has(order.id)) return
       seenIds.current.add(order.id)
 
@@ -112,7 +119,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 9000)
     })
 
-    return () => { sub.unsubscribe() }
+    return () => { cancelled = true; sub.unsubscribe() }
   }, [authed, isLoginPage])
 
   // ── Render ─────────────────────────────────────────────────
