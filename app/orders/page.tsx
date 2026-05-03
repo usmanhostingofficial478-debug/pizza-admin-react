@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { getOrders, updateOrderStatus, subscribeToOrders } from '@/lib/supabase'
 import { isPkToday, parseTs } from '@/lib/utils'
 import type { Order } from '@/types'
-import { Search, RefreshCw, Eye, Copy, Phone, MapPin, X, MessageCircle, ChevronDown } from 'lucide-react'
+import { Search, RefreshCw, Eye, Copy, Phone, MapPin, X, MessageCircle, ChevronDown, Printer } from 'lucide-react'
+import { ReceiptModal } from '@/components/receipt-modal'
 
 // ── Custom status dropdown ────────────────────────────────────
 function StatusDropdown({ value, onChange }: { value: string; onChange: (s: string) => void }) {
@@ -113,6 +114,7 @@ export default function OrdersPage() {
   const [search,  setSearch]  = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [selected, setSelected] = useState<Order | null>(null)
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [copied,   setCopied]   = useState('')
 
   useEffect(() => {
@@ -302,6 +304,13 @@ export default function OrdersPage() {
                   {/* Status */}
                   <StatusDropdown value={order.status} onChange={s => changeStatus(order.id, s)} />
 
+                  {/* Print Receipt */}
+                  <button onClick={e => { e.stopPropagation(); setReceiptOrder(order) }}
+                    className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
+                    title="Print receipt">
+                    <Printer className="w-4 h-4" />
+                  </button>
+
                   {/* View */}
                   <button onClick={e => { e.stopPropagation(); setSelected(order) }}
                     className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
@@ -342,6 +351,12 @@ export default function OrdersPage() {
                   style={{ background: sm(selected.status).bg, color: sm(selected.status).color }}>
                   {selected.status}
                 </span>
+                <button onClick={() => { const o = selected; setSelected(null); setReceiptOrder(o) }}
+                  className="p-2 rounded-lg transition flex items-center gap-1 text-xs font-semibold"
+                  style={{ background: 'rgba(249,115,22,0.15)', color: '#f97316', border: '1px solid rgba(249,115,22,0.3)' }}
+                  title="Print receipt">
+                  <Printer className="w-3.5 h-3.5" /> Receipt
+                </button>
                 <button onClick={() => setSelected(null)}
                   className="p-1.5 rounded-lg text-gray-500 hover:text-white"
                   style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -459,6 +474,11 @@ export default function OrdersPage() {
           style={{ background: '#10b981' }}>
           ✓ Copied!
         </div>
+      )}
+
+      {/* Receipt modal */}
+      {receiptOrder && (
+        <ReceiptModal order={receiptOrder} onClose={() => setReceiptOrder(null)} />
       )}
     </div>
   )
