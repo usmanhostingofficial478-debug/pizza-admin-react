@@ -1,9 +1,68 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { getOrders, updateOrderStatus, subscribeToOrders } from '@/lib/supabase'
 import type { Order } from '@/types'
-import { Search, RefreshCw, Eye, Copy, Phone, MapPin, X, MessageCircle } from 'lucide-react'
+import { Search, RefreshCw, Eye, Copy, Phone, MapPin, X, MessageCircle, ChevronDown } from 'lucide-react'
+
+// ── Custom status dropdown ────────────────────────────────────
+function StatusDropdown({ value, onChange }: { value: string; onChange: (s: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [pos,  setPos]  = useState({ top: 0, left: 0 })
+  const btnRef  = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const meta    = sm(value)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (!btnRef.current?.contains(t) && !menuRef.current?.contains(t)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function toggle(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, left: r.left })
+    }
+    setOpen(o => !o)
+  }
+
+  return (
+    <>
+      <button ref={btnRef} onClick={toggle}
+        className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer transition"
+        style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}44` }}>
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+        {value}
+        <ChevronDown className="w-3 h-3 flex-shrink-0" style={{ opacity: 0.6 }} />
+      </button>
+      {open && (
+        <div ref={menuRef}
+          className="fixed z-[9999] rounded-xl py-1 shadow-2xl"
+          style={{ top: pos.top, left: pos.left, minWidth: 140, background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)' }}>
+          {STATUSES.map(s => {
+            const m = sm(s)
+            const isActive = s === value
+            return (
+              <button key={s}
+                onClick={(e) => { e.stopPropagation(); onChange(s); setOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-left hover:bg-white/5 transition"
+                style={isActive ? { color: m.color } : { color: '#9ca3af' }}>
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />
+                {s}
+                {isActive && <span className="ml-auto text-[10px]">✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
 
 // ── helpers ───────────────────────────────────────────────────
 const STATUS_META: Record<string, { color: string; bg: string; dot: string }> = {
@@ -228,19 +287,13 @@ export default function OrdersPage() {
                   <span className="text-gray-500 text-xs">{timeAgo(order.created_at)}</span>
 
                   {/* Status */}
-                  <select value={order.status}
-                    onChange={e => { e.stopPropagation(); changeStatus(order.id, e.target.value) }}
-                    onClick={e => e.stopPropagation()}
-                    className="rounded-full px-2 py-1 text-xs font-bold focus:outline-none cursor-pointer"
-                    style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}44` }}>
-                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <StatusDropdown value={order.status} onChange={s => changeStatus(order.id, s)} />
 
                   {/* View */}
-                  <button onClick={() => setSelected(order)}
-                    className="p-1.5 rounded-lg text-gray-500 hover:text-white transition flex-shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.05)' }}>
-                    <Eye className="w-3.5 h-3.5" />
+                  <button onClick={e => { e.stopPropagation(); setSelected(order) }}
+                    className="text-gray-500 hover:text-orange-400 transition flex-shrink-0"
+                    title="View details">
+                    <Eye className="w-4 h-4" />
                   </button>
                 </div>
               )
