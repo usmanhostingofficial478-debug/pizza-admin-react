@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getOrders, getActivities, subscribeToOrders, addActivity } from '@/lib/supabase'
+import { pkDateKey, pkTodayKey, isPkToday, parseTs } from '@/lib/utils'
 import type { Order, Activity } from '@/types'
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts'
 import Link from 'next/link'
@@ -14,7 +15,7 @@ const STATUS_COLOR: Record<string, string> = {
 function sc(s: string) { return STATUS_COLOR[s] || '#6b7280' }
 
 function tAgo(ts: string) {
-  const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000)
+  const m = Math.floor((Date.now() - parseTs(ts)) / 60000)
   if (m < 1) return 'just now'
   if (m < 60) return `${m}m ago`
   if (m < 1440) return `${Math.floor(m/60)}h ago`
@@ -66,8 +67,7 @@ export default function Dashboard() {
   }
 
   // ── Derived ─────────────────────────────────────────────────
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-  const todayOrders   = orders.filter(o => new Date(o.created_at) >= todayStart)
+  const todayOrders   = orders.filter(o => isPkToday(o.created_at))
   const todayRevenue  = todayOrders.filter(o => o.status !== 'Cancelled').reduce((s,o) => s + Number(o.total), 0)
   const totalRevenue  = orders.filter(o => o.status !== 'Cancelled').reduce((s,o) => s + Number(o.total), 0)
   const pendingNow    = orders.filter(o => o.status === 'Pending').length
@@ -76,15 +76,14 @@ export default function Dashboard() {
   const avgOrderVal   = orders.filter(o=>o.status!=='Cancelled').length
     ? Math.round(totalRevenue / orders.filter(o=>o.status!=='Cancelled').length) : 0
 
-  // Last 7 days revenue
+  // Last 7 days revenue — keyed by Pakistan YYYY-MM-DD so orders land on the correct day
   const rev7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(Date.now() - (6-i)*86400000)
+    const key   = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
     const label = d.toLocaleDateString('en-PK', { weekday: 'short', timeZone: 'Asia/Karachi' })
-    const rev = orders.filter(o => {
-      const od = new Date(o.created_at)
-      return o.status !== 'Cancelled' &&
-        od.toDateString() === d.toDateString()
-    }).reduce((s,o) => s + Number(o.total), 0)
+    const rev = orders.filter(o =>
+      o.status !== 'Cancelled' && pkDateKey(o.created_at) === key
+    ).reduce((s,o) => s + Number(o.total), 0)
     return { label, rev }
   })
 

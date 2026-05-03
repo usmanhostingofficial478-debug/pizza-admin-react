@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { getOrders, updateOrderStatus, subscribeToOrders } from '@/lib/supabase'
+import { isPkToday, parseTs } from '@/lib/utils'
 import type { Order } from '@/types'
 import { Search, RefreshCw, Eye, Copy, Phone, MapPin, X, MessageCircle, ChevronDown } from 'lucide-react'
 
@@ -76,7 +77,7 @@ const STATUS_META: Record<string, { color: string; bg: string; dot: string }> = 
 const sm = (s: string) => STATUS_META[s] || STATUS_META['Pending']
 
 function timeAgo(ts: string) {
-  const diff = Date.now() - new Date(ts).getTime()
+  const diff = Date.now() - parseTs(ts)
   const m = Math.floor(diff / 60000)
   if (m < 1)   return 'just now'
   if (m < 60)  return `${m}m ago`
@@ -84,7 +85,7 @@ function timeAgo(ts: string) {
   return `${Math.floor(m/1440)}d ago`
 }
 function fmtDate(ts: string) {
-  return new Date(ts).toLocaleString('en-PK', {
+  return new Date(parseTs(ts)).toLocaleString('en-PK', {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     hour12: true, timeZone: 'Asia/Karachi',
   })
@@ -134,8 +135,7 @@ export default function OrdersPage() {
   }
 
   // ── Stats ──────────────────────────────────────────────────
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-  const todayOrders   = orders.filter(o => new Date(o.created_at) >= todayStart)
+  const todayOrders   = orders.filter(o => isPkToday(o.created_at))
   const totalRevenue  = orders.filter(o => o.status !== 'Cancelled').reduce((s,o) => s + Number(o.total), 0)
   const pendingCount  = orders.filter(o => o.status === 'Pending').length
   const deliveredCount= orders.filter(o => o.status === 'Delivered').length

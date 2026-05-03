@@ -44,17 +44,35 @@ export function getStatusColor(status: string): string {
   return colors[status] || 'bg-gray-500/20 text-gray-500'
 }
 
+/** Parse Supabase/ISO timestamp correctly (force UTC if no tz info) */
+export function parseTs(input: string | number | null | undefined): number {
+  if (input == null) return NaN
+  if (typeof input === 'number') return input
+  const str = input && !input.endsWith('Z') && !input.includes('+') && !input.includes('-', 10)
+    ? input + 'Z'
+    : input
+  return Date.parse(str)
+}
+
+/** Return a YYYY-MM-DD date string in Pakistan timezone for any timestamp */
+export function pkDateKey(input: string | number | Date): string {
+  const ms = input instanceof Date ? input.getTime() : parseTs(input as any)
+  if (isNaN(ms)) return ''
+  return new Date(ms).toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
+}
+
+/** Today's date key (YYYY-MM-DD) in Pakistan timezone */
+export function pkTodayKey(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
+}
+
+/** True if the given timestamp falls on "today" in Pakistan timezone */
+export function isPkToday(input: string | number | Date): boolean {
+  return pkDateKey(input) === pkTodayKey()
+}
+
 export function timeAgo(dateInput: string | number): string {
-  let ts: number
-  if (typeof dateInput === 'number') {
-    ts = dateInput
-  } else {
-    // Force UTC parsing if no timezone info (Supabase returns timestamps without Z)
-    const str = dateInput && !dateInput.endsWith('Z') && !dateInput.includes('+') && !dateInput.includes('-', 10)
-      ? dateInput + 'Z'
-      : dateInput
-    ts = Date.parse(str)
-  }
+  const ts = parseTs(dateInput)
   if (isNaN(ts)) return ''
   const seconds = Math.floor((Date.now() - ts) / 1000)
   if (seconds < 5) return 'Just now'

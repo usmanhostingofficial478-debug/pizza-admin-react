@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { getOrders, updateOrderStatus, subscribeToOrders } from '@/lib/supabase'
+import { isPkToday, parseTs } from '@/lib/utils'
 import type { Order } from '@/types'
 import { ChefHat, Clock, Bike, CheckCircle2, RefreshCw, Phone } from 'lucide-react'
 
 // ── helpers ────────────────────────────────────────────────────
 function elapsed(ts: string): number {
-  return Math.floor((Date.now() - new Date(ts).getTime()) / 1000)
+  return Math.floor((Date.now() - parseTs(ts)) / 1000)
 }
 function fmtElapsed(secs: number): string {
   if (secs < 60) return `${secs}s`
@@ -78,10 +79,7 @@ export default function KitchenPage() {
 
   const active   = orders.filter(o => ['Pending','Processing','Confirmed'].includes(o.status))
   const recent   = orders.filter(o => o.status === 'On the Way').slice(0, 5)
-  const todayDone = orders.filter(o => {
-    const s = new Date(); s.setHours(0,0,0,0)
-    return o.status === 'Delivered' && new Date(o.created_at) >= s
-  })
+  const todayDone = orders.filter(o => o.status === 'Delivered' && isPkToday(o.created_at))
 
   const avgWaitSecs = active.length
     ? Math.round(active.reduce((s,o) => s + elapsed(o.created_at), 0) / active.length)

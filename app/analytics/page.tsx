@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getOrders } from '@/lib/supabase'
+import { pkDateKey, isPkToday, parseTs } from '@/lib/utils'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend,
@@ -49,47 +50,44 @@ export default function AnalyticsPage() {
   const active     = orders.filter(o => !['Cancelled'].includes(o.status))
   const revenue    = active.reduce((s, o) => s + (Number(o.total) || 0), 0)
   const avgOrder   = active.length ? revenue / active.length : 0
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-  const todayOrders   = orders.filter(o => new Date(o.created_at) >= todayStart)
+  const todayOrders   = orders.filter(o => isPkToday(o.created_at))
   const todayRevenue  = todayOrders.filter(o => o.status !== 'Cancelled').reduce((s,o) => s + (Number(o.total)||0), 0)
   const deliveryRate  = orders.length ? Math.round(delivered.length / orders.length * 100) : 0
 
-  // Revenue by day (last N days)
-  const revByDay = (() => {
-    const map: Record<string, number> = {}
+  // Build a lookup from PK-YYYY-MM-DD -> pretty label, in order
+  const dayBuckets = (() => {
+    const arr: { key: string; label: string }[] = []
     const now = Date.now()
     for (let i = range - 1; i >= 0; i--) {
       const d = new Date(now - i * 86400000)
-      const key = d.toLocaleDateString('en-PK', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' })
-      map[key] = 0
+      arr.push({
+        key:   d.toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }),
+        label: d.toLocaleDateString('en-PK', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' }),
+      })
     }
+    return arr
+  })()
+
+  // Revenue by day (last N days)
+  const revByDay = (() => {
+    const map: Record<string, number> = Object.fromEntries(dayBuckets.map(b => [b.key, 0]))
     active.forEach(o => {
       if (!o.created_at) return
-      const d = new Date(o.created_at)
-      if (Date.now() - d.getTime() > range * 86400000) return
-      const key = d.toLocaleDateString('en-PK', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' })
-      if (key in map) map[key] += Number(o.total) || 0
+      const k = pkDateKey(o.created_at)
+      if (k in map) map[k] += Number(o.total) || 0
     })
-    return Object.entries(map).map(([day, rev]) => ({ day, rev: Math.round(rev) }))
+    return dayBuckets.map(b => ({ day: b.label, rev: Math.round(map[b.key]) }))
   })()
 
   // Orders by day
   const ordersByDay = (() => {
-    const map: Record<string, number> = {}
-    const now = Date.now()
-    for (let i = range - 1; i >= 0; i--) {
-      const d = new Date(now - i * 86400000)
-      const key = d.toLocaleDateString('en-PK', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' })
-      map[key] = 0
-    }
+    const map: Record<string, number> = Object.fromEntries(dayBuckets.map(b => [b.key, 0]))
     orders.forEach(o => {
       if (!o.created_at) return
-      const d = new Date(o.created_at)
-      if (Date.now() - d.getTime() > range * 86400000) return
-      const key = d.toLocaleDateString('en-PK', { month: 'short', day: 'numeric', timeZone: 'Asia/Karachi' })
-      if (key in map) map[key]++
+      const k = pkDateKey(o.created_at)
+      if (k in map) map[k]++
     })
-    return Object.entries(map).map(([day, count]) => ({ day, count }))
+    return dayBuckets.map(b => ({ day: b.label, count: map[b.key] }))
   })()
 
   // Status distribution
@@ -125,13 +123,16 @@ export default function AnalyticsPage() {
   orders.forEach(o => { const t = o.order_type || o.orderType || 'Delivery'; typeMap[t] = (typeMap[t]||0) + 1 })
   const typeData = Object.entries(typeMap).map(([name,value]) => ({ name, value }))
 
-  // Peak hours
+  // Peak hours — compute hour in Pakistan timezone
   const hourMap: Record<number, number> = {}
   for (let h = 0; h < 24; h++) hourMap[h] = 0
   orders.forEach(o => {
     if (!o.created_at) return
-    const h = new Date(o.created_at).getHours()
-    hourMap[h]++
+    const ms = parseTs(o.created_at as any)
+    if (isNaN(ms)) return
+    const hStr = new Date(ms).toLocaleString('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Asia/Karachi' })
+    const h = parseInt(hStr, 10)
+    if (!isNaN(h)) hourMap[h]++
   })
   const hourData = Object.entries(hourMap)
     .filter(([h]) => Number(h) >= 10 && Number(h) <= 24)
@@ -140,15 +141,20 @@ export default function AnalyticsPage() {
       count
     }))
 
-  // Day of week
+  // Day of week — Pakistan timezone
   const dowLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
   const dowMap: Record<number,{rev:number,orders:number}> = {}
   for(let i=0;i<7;i++) dowMap[i] = {rev:0,orders:0}
   active.forEach(o => {
     if (!o.created_at) return
-    const d = new Date(o.created_at).getDay()
-    dowMap[d].rev    += Number(o.total)||0
-    dowMap[d].orders++
+    const ms = parseTs(o.created_at as any)
+    if (isNaN(ms)) return
+    const short = new Date(ms).toLocaleString('en-US', { weekday: 'short', timeZone: 'Asia/Karachi' })
+    const idx = dowLabels.indexOf(short)
+    if (idx >= 0) {
+      dowMap[idx].rev    += Number(o.total)||0
+      dowMap[idx].orders++
+    }
   })
   const dowData = dowLabels.map((name,i) => ({ name, rev: Math.round(dowMap[i].rev), orders: dowMap[i].orders }))
 
