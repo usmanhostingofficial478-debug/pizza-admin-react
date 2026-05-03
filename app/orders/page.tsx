@@ -9,7 +9,8 @@ import { Search, Filter, MoreHorizontal, ChevronDown } from 'lucide-react'
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+  const [search, setSearch]           = useState('')
+  const [searchBy, setSearchBy]       = useState<'id'|'name'|'phone'>('name')
   const [statusFilter, setStatusFilter] = useState('All')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
@@ -40,8 +41,13 @@ export default function OrdersPage() {
   }
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(search.toLowerCase()) ||
-                         order.customer.toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase().trim()
+    let matchesSearch = true
+    if (q) {
+      if (searchBy === 'id')    matchesSearch = order.id.toLowerCase().includes(q)
+      else if (searchBy === 'name')  matchesSearch = order.customer.toLowerCase().includes(q)
+      else if (searchBy === 'phone') matchesSearch = (order.phone || '').replace(/\s/g,'').includes(q.replace(/\s/g,''))
+    }
     const matchesStatus = statusFilter === 'All' || order.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -63,16 +69,29 @@ export default function OrdersPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search orders..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2 flex-1 max-w-xl">
+          {/* Search-by selector */}
+          <select
+            value={searchBy}
+            onChange={(e) => { setSearchBy(e.target.value as any); setSearch('') }}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary flex-shrink-0"
+          >
+            <option value="name">By Name</option>
+            <option value="id">By Order ID</option>
+            <option value="phone">By Phone</option>
+          </select>
+          {/* Search input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder={searchBy === 'id' ? 'Search Order ID...' : searchBy === 'phone' ? 'Search phone number...' : 'Search customer name...'}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
         </div>
         <select
           value={statusFilter}
@@ -97,6 +116,7 @@ export default function OrdersPage() {
               <tr className="border-b border-border bg-muted/50">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Order ID</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Customer</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Phone</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Items</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Total</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Date</th>
@@ -109,6 +129,7 @@ export default function OrdersPage() {
                 <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                   <td className="px-4 py-3 text-sm font-medium">{order.id}</td>
                   <td className="px-4 py-3 text-sm">{order.customer}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{order.phone || '—'}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {order.items?.length || 0} items
                   </td>
@@ -167,6 +188,8 @@ export default function OrdersPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Customer</p>
                   <p className="font-medium">{selectedOrder.customer}</p>
+                  {selectedOrder.phone && <p className="text-sm text-muted-foreground mt-0.5">📞 {selectedOrder.phone}</p>}
+                  {selectedOrder.address && <p className="text-sm text-muted-foreground mt-0.5">📍 {selectedOrder.address}</p>}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
