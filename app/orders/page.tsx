@@ -35,7 +35,7 @@ function StatusDropdown({ value, onChange }: { value: string; onChange: (s: stri
     <>
       <button ref={btnRef} onClick={toggle}
         className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold cursor-pointer transition"
-        style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}44` }}>
+        style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}44`, width: 'fit-content' }}>
         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: meta.color }} />
         {value}
         <ChevronDown className="w-3 h-3 flex-shrink-0" style={{ opacity: 0.6 }} />
