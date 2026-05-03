@@ -32,22 +32,37 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 function BadgeDropdown({ current, onChange }: { current: string; onChange: (b: string) => void }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos]   = useState({ top: 0, left: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
   const bs = badgeStyle(current)
+
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    const h = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (btnRef.current && !btnRef.current.contains(t)) setOpen(false)
+    }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
+
+  function handleOpen() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX })
+    }
+    setOpen(o => !o)
+  }
+
   return (
-    <div ref={ref} className="relative inline-block">
-      <button onClick={() => setOpen(o => !o)}
+    <div className="inline-block">
+      <button ref={btnRef} onClick={handleOpen}
         className="text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 cursor-pointer transition hover:opacity-80"
         style={{ background: bs.bg, color: bs.color, border: `1px solid ${bs.color}40` }}>
         {current} ▾
       </button>
-      {open && (
-        <div className="absolute z-10 top-8 left-0 rounded-xl border border-white/10 shadow-2xl py-1 min-w-[130px]" style={{ background: '#1a1a2e' }}>
+      {open && typeof window !== 'undefined' && (
+        <div className="fixed z-[9999] rounded-xl border border-white/10 shadow-2xl py-1 min-w-[130px]"
+          style={{ background: '#1a1a2e', top: pos.top, left: pos.left }}>
           {BADGES.map(b => (
             <button key={b.label} onClick={() => { onChange(b.label); setOpen(false) }}
               className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-white/10 transition flex items-center gap-2"
