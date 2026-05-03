@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { Order, Customer, MenuItem, Coupon, Activity } from '@/types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://brazcavcdsgrkkvxgjeu.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyYXpjYXZjZHNncmtrdnhnamV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MjQyNDAsImV4cCI6MjA1MjMwMDI0MH0.6-9C2POhZ6PqQ1lR3aR7XqK4sM8hC9wG2bH5fE7dY1c'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyYXpjYXZjZHNncmtrdnhnamV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NjM5NDIsImV4cCI6MjA5MzIzOTk0Mn0.M-4_OZGj1TvXXMeci8tDO1EbiH8ODXYy40CUEdo4CHo'
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
@@ -18,13 +18,21 @@ export async function getOrders(): Promise<Order[]> {
     return []
   }
   
-  return (data || []).map(order => ({
-    ...order,
-    id: order.tracking_id || order.id,
-    customer: order.customer?.name || order.customer || 'Unknown',
-    status: normalizeStatus(order.status),
-    items: Array.isArray(order.items) ? order.items : [],
-  })) as Order[]
+  return (data || []).map(order => {
+    const customerObj = typeof order.customer === 'object' && order.customer !== null
+      ? order.customer
+      : {}
+    return {
+      ...order,
+      id: order.tracking_id || order.order_id || String(order.id),
+      tracking_id: order.tracking_id || order.order_id || String(order.id),
+      customer: customerObj.name || order.customer || 'Unknown',
+      phone: customerObj.phone || order.phone || '',
+      address: customerObj.address || order.address || '',
+      status: normalizeStatus(order.status),
+      items: Array.isArray(order.items) ? order.items : [],
+    }
+  }) as Order[]
 }
 
 export async function updateOrderStatus(orderId: string, status: string): Promise<boolean> {
