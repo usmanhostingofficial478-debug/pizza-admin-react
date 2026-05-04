@@ -6,6 +6,7 @@ import { Sidebar } from './sidebar'
 import { isAuthenticated, updateActivity, logout } from '@/lib/auth'
 import { subscribeToNewOrders, getOrders } from '@/lib/supabase'
 import { X, ShoppingBag } from 'lucide-react'
+import { NotificationsProvider, useNotifications } from '@/lib/notifications'
 
 // ── Notification sound (Web Audio API — no file needed) ────────
 function playDing() {
@@ -29,6 +30,14 @@ type Toast = { id: string; orderId: string; customer: string; total: number; ite
 
 // ══════════════════════════════════════════════════════════════
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  return (
+    <NotificationsProvider>
+      <AdminShellInner>{children}</AdminShellInner>
+    </NotificationsProvider>
+  )
+}
+
+function AdminShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router   = useRouter()
   const [authed,  setAuthed]  = useState(false)
@@ -37,6 +46,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const seenIds  = useRef<Set<string>>(new Set())
   const titleIv  = useRef<ReturnType<typeof setInterval> | null>(null)
   const isLoginPage = pathname === '/login'
+  const { add: addNotification } = useNotifications()
 
   // ── Auth check ─────────────────────────────────────────────
   useEffect(() => {
@@ -117,6 +127,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       const id = `${Date.now()}`
       setToasts(prev => [{ id, orderId: order.id, customer, total, items }, ...prev].slice(0, 4))
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 9000)
+
+      // 5️⃣ Persistent notification in sidebar bell
+      addNotification({ orderId: order.id, customer: String(customer), total, items })
     })
 
     return () => { cancelled = true; sub.unsubscribe() }

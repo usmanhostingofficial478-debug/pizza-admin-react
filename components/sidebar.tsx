@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { logout } from '@/lib/auth'
 import { getOrders } from '@/lib/supabase'
+import { useNotifications } from '@/lib/notifications'
 import {
   LayoutDashboard, ShoppingBag, ChefHat, BarChart3,
-  UtensilsCrossed, Users, Ticket, LogOut, Bell,
-  TrendingUp, Clock, CheckCircle2, Settings,
+  UtensilsCrossed, Users, Ticket, LogOut, Bell, BellRing,
+  TrendingUp, Clock, CheckCircle2, Settings, Trash2, X,
 } from 'lucide-react'
 
 const SECTIONS = [
@@ -105,18 +106,19 @@ export function Sidebar() {
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 flex flex-col border-r border-white/10"
       style={{ background: 'linear-gradient(180deg, #111127 0%, #0d0d1f 100%)' }}>
 
-      {/* Logo + time */}
+      {/* Logo + notifications */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)' }}>
             <span className="text-lg">🍕</span>
           </div>
-          <div>
-            <p className="text-white font-black text-sm leading-tight">Pizza Admin</p>
-            <p className="text-gray-500 text-xs">Management Panel</p>
+          <div className="min-w-0">
+            <p className="text-white font-black text-sm leading-tight truncate">Pizza Admin</p>
+            <p className="text-gray-500 text-xs truncate">Management Panel</p>
           </div>
         </div>
+        <NotificationsBell />
       </div>
 
       {/* Live clock + stats strip */}
@@ -197,5 +199,152 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+  )
+}
+
+// ── Notifications bell + dropdown ────────────────────────────────
+function NotificationsBell() {
+  const { notifications, unreadCount, markAllRead, clear, remove } = useNotifications()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (!ref.current) return
+      if (!ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  function toggle() {
+    setOpen(o => {
+      const n = !o
+      if (n && unreadCount > 0) markAllRead()
+      return n
+    })
+  }
+
+  function timeAgo(ts: number) {
+    const s = Math.max(1, Math.floor((Date.now() - ts) / 1000))
+    if (s < 60)     return `${s}s ago`
+    if (s < 3600)   return `${Math.floor(s/60)}m ago`
+    if (s < 86400)  return `${Math.floor(s/3600)}h ago`
+    return `${Math.floor(s/86400)}d ago`
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={toggle}
+        className="relative w-9 h-9 rounded-xl flex items-center justify-center transition hover:bg-white/10"
+        style={{ background: unreadCount > 0 ? 'rgba(234,88,12,0.15)' : 'rgba(255,255,255,0.05)' }}
+        title="Notifications">
+        {unreadCount > 0
+          ? <BellRing className="w-4 h-4 text-orange-400 bell-shake" />
+          : <Bell className="w-4 h-4 text-gray-400" />
+        }
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-black text-white"
+            style={{ background: '#ef4444', boxShadow: '0 0 0 2px #111127' }}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-2 z-[120] rounded-2xl shadow-2xl overflow-hidden notif-pop"
+          style={{ width: 340, background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.12)', transformOrigin: 'top left' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div>
+              <p className="text-white font-bold text-sm">Notifications</p>
+              <p className="text-gray-500 text-[11px]">
+                {notifications.length === 0 ? 'No notifications yet' : `${notifications.length} total`}
+              </p>
+            </div>
+            {notifications.length > 0 && (
+              <button onClick={clear}
+                className="text-gray-500 hover:text-red-400 text-[11px] font-semibold flex items-center gap-1 transition">
+                <Trash2 className="w-3 h-3" /> Clear
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="max-h-[420px] overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="px-4 py-10 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(234,88,12,0.1)' }}>
+                  <Bell className="w-5 h-5 text-orange-400/70" />
+                </div>
+                <p className="text-gray-400 text-sm">All caught up!</p>
+                <p className="text-gray-600 text-[11px] mt-1">New orders will appear here</p>
+              </div>
+            ) : (
+              notifications.map((n, i) => (
+                <div key={n.id}
+                  className="group flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition notif-item"
+                  style={{
+                    borderBottom: i < notifications.length-1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    animationDelay: `${i * 25}ms`,
+                  }}>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(234,88,12,0.15)' }}>
+                    <ShoppingBag className="w-3.5 h-3.5 text-orange-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-white text-xs font-bold truncate">
+                        🔔 New Order — {n.customer}
+                      </p>
+                      <button onClick={() => remove(n.id)}
+                        className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition flex-shrink-0">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <p className="text-gray-400 text-[11px] mt-0.5">
+                      Rs. {n.total.toLocaleString()} &nbsp;·&nbsp; {n.items} item{n.items !== 1 ? 's' : ''}
+                    </p>
+                    <p className="text-gray-600 text-[10px] mt-0.5 flex items-center gap-1.5">
+                      <span className="truncate">{n.orderId}</span>
+                      <span>•</span>
+                      <span className="whitespace-nowrap">{timeAgo(n.createdAt)}</span>
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {notifications.length > 0 && (
+            <Link href="/orders"
+              onClick={() => setOpen(false)}
+              className="block text-center text-xs font-bold text-orange-400 hover:text-orange-300 py-2.5 border-t border-white/10 hover:bg-white/5 transition">
+              View all orders →
+            </Link>
+          )}
+        </div>
+      )}
+
+      <style>{`
+        @keyframes bellShake {
+          0%, 100% { transform: rotate(0); }
+          20%, 60% { transform: rotate(12deg); }
+          40%, 80% { transform: rotate(-12deg); }
+        }
+        .bell-shake { animation: bellShake 1.4s ease-in-out infinite; transform-origin: top center; }
+        @keyframes notifPop {
+          from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .notif-pop { animation: notifPop 0.2s cubic-bezier(0.16,1,0.3,1) both; }
+        @keyframes notifItemIn {
+          from { opacity: 0; transform: translateX(-6px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .notif-item { animation: notifItemIn 0.25s ease both; opacity: 0; }
+      `}</style>
+    </div>
   )
 }
