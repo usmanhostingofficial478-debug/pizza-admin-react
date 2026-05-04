@@ -6,6 +6,7 @@ import { isPkToday, parseTs } from '@/lib/utils'
 import type { Order } from '@/types'
 import { Search, RefreshCw, Eye, Copy, Phone, MapPin, X, MessageCircle, ChevronDown, Printer } from 'lucide-react'
 import { ReceiptModal } from '@/components/receipt-modal'
+import { useSettings } from '@/lib/settings'
 
 // ── Custom status dropdown ────────────────────────────────────
 function StatusDropdown({ value, onChange }: { value: string; onChange: (s: string) => void }) {
@@ -109,10 +110,11 @@ const WA = '923178457586'
 
 // ══════════════════════════════════════════════════════════════
 export default function OrdersPage() {
+  const { settings } = useSettings()
   const [orders,  setOrders]  = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [search,  setSearch]  = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState<string>(settings.defaultOrdersFilter || 'All')
   const [selected, setSelected] = useState<Order | null>(null)
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
   const [copied,   setCopied]   = useState('')
@@ -127,6 +129,13 @@ export default function OrdersPage() {
     })
     return () => { sub.unsubscribe() }
   }, [])
+
+  // Auto-refresh interval (driven by Settings → Appearance)
+  useEffect(() => {
+    if (!settings.autoRefreshSec || settings.autoRefreshSec <= 0) return
+    const id = setInterval(() => { loadOrders() }, settings.autoRefreshSec * 1000)
+    return () => clearInterval(id)
+  }, [settings.autoRefreshSec])
 
   async function loadOrders() {
     setLoading(true)

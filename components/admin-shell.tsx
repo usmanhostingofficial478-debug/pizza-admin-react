@@ -7,7 +7,7 @@ import { isAuthenticated, updateActivity, logout } from '@/lib/auth'
 import { subscribeToNewOrders, getOrders } from '@/lib/supabase'
 import { X, ShoppingBag } from 'lucide-react'
 import { NotificationsProvider, useNotifications } from '@/lib/notifications'
-import { readSettings } from '@/lib/settings'
+import { readSettings, useSettings } from '@/lib/settings'
 
 // ── Notification sound (Web Audio API — no file needed) ────────
 function playDing(volume = 0.6) {
@@ -49,6 +49,14 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
   const titleIv  = useRef<ReturnType<typeof setInterval> | null>(null)
   const isLoginPage = pathname === '/login'
   const { add: addNotification } = useNotifications()
+  const { settings } = useSettings()
+
+  // Apply theme + compact-tables to <html> so any page can react via CSS
+  useEffect(() => {
+    const root = document.documentElement
+    root.setAttribute('data-theme', settings.theme)
+    root.setAttribute('data-compact', settings.compactTables ? '1' : '0')
+  }, [settings.theme, settings.compactTables])
 
   // ── Auth check ─────────────────────────────────────────────
   useEffect(() => {

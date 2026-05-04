@@ -54,3 +54,31 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+
+/* ─────────── Theme variants (controlled by Settings → Appearance) ─────────── */
+html[data-theme='dim'] {
+  --background: 222 30% 9%;
+  --card: 222 30% 12%;
+}
+html[data-theme='dim'] body {
+  background: #131322 !important;
+}
+html[data-theme='dim'] aside,
+html[data-theme='dim'] main {
+  filter: brightness(1.06);
+}
+
+/* ─────────── Compact tables (controlled by Settings → Appearance) ─────────── */
+html[data-compact='1'] .grid.gap-2.px-4.py-3 {
+  padding-top: 0.45rem !important;
+  padding-bottom: 0.45rem !important;
+}
+html[data-compact='1'] .grid.gap-2.px-4.py-2\.5 {
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+}
+html[data-compact='1'] table th,
+html[data-compact='1'] table td {
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+}
