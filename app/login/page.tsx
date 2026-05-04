@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ADMIN_PASSWORD, setLoggedIn, isAuthenticated } from '@/lib/auth'
+import { checkPassword, setLoggedIn, isAuthenticated } from '@/lib/auth'
 
 export default function LoginPage() {
   const router  = useRouter()
@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
+      if (checkPassword(password)) {
         setLoggedIn()
         router.replace('/')
       } else {

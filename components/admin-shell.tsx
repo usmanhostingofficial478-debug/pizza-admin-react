@@ -7,9 +7,10 @@ import { isAuthenticated, updateActivity, logout } from '@/lib/auth'
 import { subscribeToNewOrders, getOrders } from '@/lib/supabase'
 import { X, ShoppingBag } from 'lucide-react'
 import { NotificationsProvider, useNotifications } from '@/lib/notifications'
+import { readSettings } from '@/lib/settings'
 
 // ── Notification sound (Web Audio API — no file needed) ────────
-function playDing() {
+function playDing(volume = 0.6) {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
     const osc = ctx.createOscillator()
@@ -19,7 +20,8 @@ function playDing() {
     osc.frequency.setValueAtTime(1046, ctx.currentTime)
     osc.frequency.setValueAtTime(1318, ctx.currentTime + 0.12)
     osc.frequency.setValueAtTime(1568, ctx.currentTime + 0.24)
-    gain.gain.setValueAtTime(0.25, ctx.currentTime)
+    const v = Math.max(0, Math.min(1, volume)) * 0.35
+    gain.gain.setValueAtTime(v, ctx.currentTime)
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7)
     osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.7)
   } catch {}
@@ -88,6 +90,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       if (seenIds.current.has(order.id)) return
       seenIds.current.add(order.id)
 
+      const s = readSettings()
       const customer = (order as any).customer || 'Someone'
       const total    = Number((order as any).total) || 0
       const items    = Array.isArray((order as any).items)
@@ -95,13 +98,13 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
         : 0
 
       // 1️⃣ Play sound
-      playDing()
+      if (s.soundEnabled) playDing(s.soundVolume)
 
       // 2️⃣ Browser notification
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      if (s.browserNotifEnabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         try {
           const n = new Notification('🍕 New Order Received!', {
-            body: `${customer} — Rs. ${total.toLocaleString()} · ${items} item${items !== 1 ? 's' : ''}`,
+            body: `${customer} — ${s.currency} ${total.toLocaleString()} · ${items} item${items !== 1 ? 's' : ''}`,
             icon: '/favicon.ico',
             tag: order.id,
             requireInteraction: false,
@@ -111,24 +114,28 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       }
 
       // 3️⃣ Tab title flash
-      const origTitle = document.title
-      let flip = false
-      if (titleIv.current) clearInterval(titleIv.current)
-      titleIv.current = setInterval(() => {
-        document.title = flip ? origTitle : '🔔 New Order!'
-        flip = !flip
-      }, 900)
-      setTimeout(() => {
+      if (s.titleFlashEnabled) {
+        const origTitle = document.title
+        let flip = false
         if (titleIv.current) clearInterval(titleIv.current)
-        document.title = origTitle
-      }, 12000)
+        titleIv.current = setInterval(() => {
+          document.title = flip ? origTitle : '🔔 New Order!'
+          flip = !flip
+        }, 900)
+        setTimeout(() => {
+          if (titleIv.current) clearInterval(titleIv.current)
+          document.title = origTitle
+        }, 12000)
+      }
 
       // 4️⃣ In-app toast
-      const id = `${Date.now()}`
-      setToasts(prev => [{ id, orderId: order.id, customer, total, items }, ...prev].slice(0, 4))
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 9000)
+      if (s.toastsEnabled) {
+        const id = `${Date.now()}`
+        setToasts(prev => [{ id, orderId: order.id, customer, total, items }, ...prev].slice(0, 4))
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 9000)
+      }
 
-      // 5️⃣ Persistent notification in sidebar bell
+      // 5️⃣ Persistent notification in sidebar bell (always)
       addNotification({ orderId: order.id, customer: String(customer), total, items })
     })
 

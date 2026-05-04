@@ -6,10 +6,12 @@ import { useEffect, useRef, useState } from 'react'
 import { logout } from '@/lib/auth'
 import { getOrders } from '@/lib/supabase'
 import { useNotifications } from '@/lib/notifications'
+import { useSettings } from '@/lib/settings'
 import {
   LayoutDashboard, ShoppingBag, ChefHat, BarChart3,
   UtensilsCrossed, Users, Ticket, LogOut, Bell, BellRing,
   TrendingUp, Clock, CheckCircle2, Settings, Trash2, X,
+  ChevronRight,
 } from 'lucide-react'
 
 const SECTIONS = [
@@ -66,6 +68,7 @@ function NavItem({ href, isActive, count, children }: {
 export function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
+  const { settings } = useSettings()
   const [pendingOrders,  setPendingOrders]  = useState(0)
   const [kitchenOrders,  setKitchenOrders]  = useState(0)
   const [time, setTime] = useState('')
@@ -122,6 +125,7 @@ export function Sidebar() {
       </div>
 
       {/* Live clock + stats strip */}
+      {settings.showStatsStrip && (
       <div className="mx-3 mt-3 mb-1 rounded-xl px-3 py-2.5 flex items-center justify-between"
         style={{ background: 'rgba(234,88,12,0.08)', border: '1px solid rgba(234,88,12,0.2)' }}>
         <div className="flex items-center gap-1.5">
@@ -139,6 +143,7 @@ export function Sidebar() {
           </span>
         </div>
       </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-4">
@@ -181,19 +186,28 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Admin info + logout */}
-        <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
-            A
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-bold truncate">Admin</p>
-            <p className="text-gray-500 text-[10px] truncate">Pizza Company</p>
-          </div>
+        {/* Admin info — click to open Settings */}
+        <div className="flex items-stretch gap-1.5">
+          <Link href="/settings"
+            className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5 transition hover:bg-white/5 group"
+            style={{
+              background: pathname === '/settings' ? 'rgba(234,88,12,0.1)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${pathname === '/settings' ? 'rgba(234,88,12,0.3)' : 'rgba(255,255,255,0.06)'}`,
+            }}
+            title="Open settings">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
+              {(settings.adminName || 'A').charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-xs font-bold truncate">{settings.adminName || 'Admin'}</p>
+              <p className="text-gray-500 text-[10px] truncate">{settings.storeName || 'Pizza Company'}</p>
+            </div>
+            <Settings className="w-4 h-4 text-gray-500 group-hover:text-orange-400 transition flex-shrink-0" />
+          </Link>
           <button onClick={handleLogout} title="Logout"
-            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition flex-shrink-0">
+            className="px-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition flex-shrink-0"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <LogOut className="w-4 h-4" />
           </button>
         </div>
