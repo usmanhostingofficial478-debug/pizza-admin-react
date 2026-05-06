@@ -85,7 +85,7 @@ export default function CustomersPage() {
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
   const [filterBadge, setFilterBadge] = useState('All')
-  const [modal, setModal]         = useState<'add' | 'history' | 'delete' | null>(null)
+  const [modal, setModal]         = useState<'add' | 'edit' | 'history' | 'delete' | null>(null)
   const [selected, setSelected]   = useState<any>(null)
   const [orders, setOrders]       = useState<any[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
@@ -115,6 +115,32 @@ export default function CustomersPage() {
     setSaving(true)
     const created = await addCustomer(form)
     if (created) { setCustomers(cs => [created, ...cs]); showToast('Customer added!') }
+    setSaving(false); setModal(null)
+    setForm({ name: '', phone: '', address: '', email: '', notes: '', badge: 'Regular' })
+  }
+
+  function openEdit(c: any) {
+    setSelected(c)
+    setForm({
+      name:    c.name    || '',
+      phone:   c.phone   || '',
+      address: c.address || '',
+      email:   c.email   || '',
+      notes:   c.notes   || '',
+      badge:   c.badge   || 'Regular',
+    })
+    setModal('edit')
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selected) return
+    setSaving(true)
+    const ok = await updateCustomer(selected.id, form)
+    if (ok) {
+      setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, ...form } : c))
+      showToast('Customer updated!')
+    }
     setSaving(false); setModal(null)
     setForm({ name: '', phone: '', address: '', email: '', notes: '', badge: 'Regular' })
   }
@@ -244,6 +270,11 @@ export default function CustomersPage() {
                         className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/10 transition">
                         📋 Orders
                       </button>
+                      <button onClick={() => openEdit(c)}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-orange-500/30 text-orange-400 hover:bg-orange-500/10 transition"
+                        title="Edit customer">
+                        ✏️ Edit
+                      </button>
                       <button onClick={() => { setSelected(c); setModal('delete') }}
                         className="text-xs px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition">
                         🗑
@@ -257,10 +288,10 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Add Customer Modal */}
-      {modal === 'add' && (
-        <Modal title="Add Customer" onClose={() => setModal(null)}>
-          <form onSubmit={handleAdd} className="space-y-4">
+      {/* Add / Edit Customer Modal */}
+      {(modal === 'add' || modal === 'edit') && (
+        <Modal title={modal === 'edit' ? `Edit Customer— ${selected?.name || ''}` : 'Add Customer'} onClose={() => setModal(null)}>
+          <form onSubmit={modal === 'edit' ? handleEdit : handleAdd} className="space-y-4">
             {[
               { label: 'Name *',    key: 'name',    type: 'text',  required: true,  placeholder: 'Customer name' },
               { label: 'Phone *',   key: 'phone',   type: 'tel',   required: true,  placeholder: '03xxxxxxxxx' },
@@ -288,7 +319,7 @@ export default function CustomersPage() {
               <button type="submit" disabled={saving}
                 className="flex-1 py-2.5 rounded-xl font-bold text-white disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)' }}>
-                {saving ? 'Saving…' : 'Add Customer'}
+                {saving ? 'Saving…' : modal === 'edit' ? 'Save Changes' : 'Add Customer'}
               </button>
             </div>
           </form>
