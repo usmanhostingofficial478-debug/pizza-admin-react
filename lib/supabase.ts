@@ -151,12 +151,14 @@ export async function getCustomers(): Promise<Customer[]> {
     const cTail = phoneTail(c.phone)
     // Try exact full-digit match first, then last-10-digits fallback
     const live = byFull.get(cFull) || byTail.get(cTail) || { count: 0, spent: 0, firstAt: null }
+    // Fallback chain: earliest order date → customer created_at → last_order → null
+    const firstOrderDate = live.firstAt || c.created_at || c.last_order || null
     return {
       ...c,
       // Live aggregated values take priority; fall back to stored counters
       orders_count: live.count || c.total_orders || c.orders || 0,
       total_spent:  live.spent || c.total_spent  || c.spent  || 0,
-      first_order_date: live.firstAt,
+      first_order_date: firstOrderDate,
     }
   })
 }
