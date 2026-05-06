@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="favGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ea580c"/>
+      <stop offset="100%" style="stop-color:#f97316"/>
+    </linearGradient>
+    <linearGradient id="favSlice" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fef3c7"/>
+      <stop offset="100%" style="stop-color:#fde68a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="2" y="2" width="28" height="28" rx="6" fill="url(#favGrad)"/>
+  
+  <!-- Pizza slice -->
+  <path d="M16 6 L24 20 Q16 24 8 20 Z" fill="url(#favSlice)" stroke="#fbbf24" stroke-width="1.5"/>
+  
+  <!-- Crust -->
+  <path d="M8 20 Q16 24 24 20" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Pepperoni -->
+  <circle cx="16" cy="14" r="2" fill="#dc2626"/>
+  <circle cx="12" cy="18" r="1.5" fill="#dc2626"/>
+  <circle cx="20" cy="18" r="1.5" fill="#dc2626"/>
+  
+  <!-- Mini gear -->
+  <g transform="translate(22, 22) scale(0.35)">
+    <circle cx="0" cy="0" r="14" fill="#1e1b4b" stroke="#f97316" stroke-width="2"/>
+    <rect x="-2" y="-16" width="4" height="4" rx="1" fill="#f97316"/>
+    <rect x="-2" y="12" width="4" height="4" rx="1" fill="#f97316"/>
+    <rect x="-16" y="-2" width="4" height="4" rx="1" fill="#f97316"/>
+    <rect x="12" y="-2" width="4" height="4" rx="1" fill="#f97316"/>
+    <circle cx="0" cy="0" r="5" fill="#f97316"/>
+  </g>
+</svg>

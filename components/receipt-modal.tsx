@@ -136,7 +136,7 @@ export function ReceiptModal({ order, onClose }: { order: Order; onClose: () => 
           {/* Printable receipt */}
           <div ref={paperRef} id="receipt-paper" className="receipt-paper">
             <div className="r-center">
-              <div className="r-logo">🍕</div>
+              <img src="/logo.svg" alt="" width="48" height="48" style={{ margin: '0 auto 6px' }} />
               <div className="r-store">{STORE_NAME}</div>
               <div className="r-addr">{STORE_ADDRESS}</div>
               <div className="r-addr">{STORE_PHONE}</div>

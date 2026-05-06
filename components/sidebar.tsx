@@ -112,9 +112,9 @@ export function Sidebar() {
       {/* Logo + notifications */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)' }}>
-            <span className="text-lg">🍕</span>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', boxShadow: '0 4px 12px rgba(234,88,12,0.35)' }}>
+            <img src="/logo.svg" alt="Pizza Admin" className="w-8 h-8" />
           </div>
           <div className="min-w-0">
             <p className="text-white font-black text-sm leading-tight truncate">Pizza Admin</p>
