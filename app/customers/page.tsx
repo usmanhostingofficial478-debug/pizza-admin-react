@@ -16,6 +16,27 @@ function badgeStyle(badge: string) {
   return BADGES.find(b => b.label === badge) || BADGES[0]
 }
 
+function formatJoined(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const diffMonths = Math.floor(diffDays / 30)
+  const diffYears = Math.floor(diffDays / 365)
+
+  let relative = ''
+  if (diffDays < 1) relative = 'Today'
+  else if (diffDays === 1) relative = 'Yesterday'
+  else if (diffDays < 7) relative = `${diffDays} days ago`
+  else if (diffDays < 30) relative = `${Math.floor(diffDays / 7)} weeks ago`
+  else if (diffMonths < 12) relative = `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`
+  else relative = `${diffYears} year${diffYears > 1 ? 's' : ''} ago`
+
+  const datePart = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return `${datePart} · ${relative}`
+}
+
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
@@ -234,7 +255,7 @@ export default function CustomersPage() {
           <table className="w-full">
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                {['Customer','Phone','Address','Orders','Spent','Badge','Actions'].map(h => (
+                {['Customer','Phone','Address','Orders','Spent','Joined','Badge','Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -260,6 +281,9 @@ export default function CustomersPage() {
                   <td className="px-4 py-3 text-white font-bold text-sm">{c.orders_count ?? c.total_orders ?? 0}</td>
                   <td className="px-4 py-3 text-orange-400 font-bold text-sm">
                     Rs. {(c.total_spent ?? c.spent ?? 0).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
+                    {formatJoined(c.first_order_date)}
                   </td>
                   <td className="px-4 py-3">
                     <BadgeDropdown current={c.badge || 'Regular'} onChange={badge => handleBadgeChange(c.id, badge)} />

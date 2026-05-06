@@ -113,32 +113,35 @@ export async function getCustomers(): Promise<Customer[]> {
   // Fetch customers + all orders in parallel — aggregate on the client
   const [{ data: cs, error: cErr }, { data: os, error: oErr }] = await Promise.all([
     supabase.from('customers').select('*').order('created_at', { ascending: false }),
-    supabase.from('orders').select('phone, customer, total, status'),
+    supabase.from('orders').select('phone, customer, total, status, created_at'),
   ])
   if (cErr) { console.error('Error fetching customers:', cErr); return [] }
   if (oErr) console.error('Error fetching orders for aggregation:', oErr)
 
   // Build TWO maps — exact-digits and last-10-digits (Pakistani mobile pattern)
   // We add to both so we can fall back gracefully.
-  const byFull = new Map<string, { count: number; spent: number }>()
-  const byTail = new Map<string, { count: number; spent: number }>()
+  const byFull = new Map<string, { count: number; spent: number; firstAt: string | null }>()
+  const byTail = new Map<string, { count: number; spent: number; firstAt: string | null }>()
 
   for (const o of os || []) {
     const cust = typeof (o as any).customer === 'object' ? (o as any).customer : {}
     const raw  = cust?.phone || (o as any).phone
     const full = normPhone(raw)
     const tail = phoneTail(raw)
+    const createdAt = (o as any).created_at as string | null
     if (!full) continue
     const isCancelled = (o as any).status === 'Cancelled'
     const total = Number((o as any).total) || 0
 
-    const f = byFull.get(full) || { count: 0, spent: 0 }
+    const f = byFull.get(full) || { count: 0, spent: 0, firstAt: null }
     f.count += 1; if (!isCancelled) f.spent += total
+    if (createdAt && (!f.firstAt || createdAt < f.firstAt)) f.firstAt = createdAt
     byFull.set(full, f)
 
     if (tail) {
-      const t = byTail.get(tail) || { count: 0, spent: 0 }
+      const t = byTail.get(tail) || { count: 0, spent: 0, firstAt: null }
       t.count += 1; if (!isCancelled) t.spent += total
+      if (createdAt && (!t.firstAt || createdAt < t.firstAt)) t.firstAt = createdAt
       byTail.set(tail, t)
     }
   }
@@ -147,12 +150,13 @@ export async function getCustomers(): Promise<Customer[]> {
     const cFull = normPhone(c.phone)
     const cTail = phoneTail(c.phone)
     // Try exact full-digit match first, then last-10-digits fallback
-    const live = byFull.get(cFull) || byTail.get(cTail) || { count: 0, spent: 0 }
+    const live = byFull.get(cFull) || byTail.get(cTail) || { count: 0, spent: 0, firstAt: null }
     return {
       ...c,
       // Live aggregated values take priority; fall back to stored counters
       orders_count: live.count || c.total_orders || c.orders || 0,
       total_spent:  live.spent || c.total_spent  || c.spent  || 0,
+      first_order_date: live.firstAt,
     }
   })
 }
